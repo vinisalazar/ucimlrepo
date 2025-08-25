@@ -29,7 +29,8 @@ class DatasetNotFoundError(Exception):
 
 def fetch_ucirepo(
         name: Optional[str] = None, 
-        id: Optional[int] = None
+        id: Optional[int] = None,
+        skip_ssl_cert: Optional[bool] = False,
     ):
     '''
     Loads a dataset from the UCI ML Repository, including the dataframes and metadata information.
@@ -38,6 +39,8 @@ def fetch_ucirepo(
         id (int): Dataset ID for UCI ML Repository
         name (str): Dataset name, or substring of name
         (Only provide id or name, not both)
+
+        skip_ssl_cert: Skip SSL certificate check, fixes errors on MacOS.
 
     Returns:
         result (dotdict): object containing dataset metadata, dataframes, and variable info in its properties
@@ -65,7 +68,13 @@ def fetch_ucirepo(
     # fetch metadata from API
     data = None
     try:
-        response = urllib.request.urlopen(api_url, context=ssl.create_default_context(cafile=certifi.where()))
+        if skip_ssl_cert:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        else:
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        response = urllib.request.urlopen(api_url, context=ctx)
         data = json.load(response)
     except (urllib.error.URLError, urllib.error.HTTPError):
         raise ConnectionError('Error connecting to server')
