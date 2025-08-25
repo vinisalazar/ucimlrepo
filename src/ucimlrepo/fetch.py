@@ -103,7 +103,11 @@ def fetch_ucirepo(
     # parse into dataframe using pandas
     df = None
     try:
-        df = pd.read_csv(data_url)
+        if skip_ssl_cert:
+            with urllib.request.urlopen(data_url, context=ctx) as resp:
+                df = pd.read_csv(resp)
+        else:
+            df = pd.read_csv(data_url)
     except (urllib.error.URLError, urllib.error.HTTPError):
         raise DatasetNotFoundError('Error reading data csv file for "{}" dataset (id={}).'.format(name, id))
         
